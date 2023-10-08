@@ -1,0 +1,8 @@
+*  {
+    font-family: "MD Primer Bold",Rubik,Lato,"Lucida Grande","Lucida Sans Unicode",Tahoma,Sans-Serif; 
+}
+body {
+    height: 100vh;
+    display: flex;
+    background-color: #FFFDFA;
+}
