@@ -3,13 +3,101 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/index.css">
     <title>Tournament</title>
     <script defer src='js/index.js'></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.3.1/firebase-app-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.3.1/firebase-auth-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.3.1/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 </head>
 <body>
-    <div>
-        <h1>Tournament</h1>
+    <div class="container-header">
+        <div class="item-header"><fade></fade></div>
+        <div class="item-contact" id="header-button-1">
+            <button id="contact-button" class="header-button" onClick="showContactPopup()">Contact</button>
+        </div>
+        <div class="item-login" id="header-button-3"></div>
+        <div class="item-signup" id="header-button-2"></div>
+    </div>
+    <div class="landing-body">
+        <h1 id="title"></h1>
+    </div>
+    <div id="contact-popup" class="container-form-popup">
+        <form class="form-popup" id="contactForm" name="contactForm" onsubmit="return false;">
+            <div class="form-group">
+                <label class="form-label" for="contact_fname">First Name</label>
+                <br>
+                <input class="form-control" id="contact_fname" name="contact_fname" type="text" placeholder="Enter First Name">
+                <br>
+                <label for="contact_lname">Last Name</label>
+                <br>
+                <input class="form-control" id="contact_lname" name="contact_lname" type="text" placeholder="Enter Last Name">
+                <br>
+                <label for="contact_email">Email address</label>
+                <br>
+                <input name="contact_email" type="email" class="form-control" id="contact_email" placeholder="Enter Email">
+                <br>
+                <label for="contact_phone">Phone number</label>
+                <br>
+                <input class="form-control" id="contact_phone" name="contact_phone" type="text" placeholder="123-456-7890">
+                <br>
+                <label for="contact_message">Message</label>
+                <br>
+                <textarea class="form-control" id="contact_message" name="contact_message" rows="6" cols="60"></textarea>
+            </div>
+            <button type="submit" class="form-button">Submit</button>
+            <button onClick="hideContactPopup()" class="form-button">Exit</button>
+        </form>
+        <p class="formError" id="contactFormError"></p>
+    </div>
+    <div id="signup-popup" class="container-form-popup">
+        <form class="form-popup" id="signupForm" name="signupForm" onsubmit="return false;">
+            <div class="form-group">
+                <label class="form-label" for="signup_fname">First Name</label>
+                <br>
+                <input class="form-control" id="signup_fname" name="signup_fname" type="text" placeholder="Enter First Name">
+                <br>
+                <label for="signup_lname">Last Name</label>
+                <br>
+                <input class="form-control" id="signup_lname" name="signup_lname" type="text" placeholder="Enter Last Name">
+                <br>
+                <label for="signup_email">Email address</label>
+                <br>
+                <input name="signup_email" type="email" class="form-control" id="signup_email" placeholder="Enter Email">
+                <br>
+                <label for="signup_phone">Phone number</label>
+                <br>
+                <input class="form-control" id="signup_phone" name="signup_phone" type="text" placeholder="123-456-7890">
+                <br>
+                <label for="signup_password">Password</label>
+                <br>
+                <input class="form-control" id="signup_password" name="signup_password" type="text" placeholder="Password">
+                <br>
+                <label for="signup_password">Password Confirmation</label>
+                <br>
+                <input class="form-control" id="signup_password_con" name="signup_password_con" type="text" placeholder="Password">
+            </div>
+            <button type="submit" class="form-button">Sign up</button>
+            <button onClick="hideSignupPopup()" class="form-button">Exit</button>
+        </form>
+        <p class="formError" id="signupFormError"></p>
+    </div>
+    <div id="login-popup" class="container-form-popup">
+        <form class="form-popup" id="loginForm" name="loginForm" onsubmit="return false;">
+            <div class="form-group">
+                <label for="login_email">Use your email</label>
+                <br>
+                <input name="login_email" type="email" class="form-control" id="login_email" placeholder="Enter Email">
+                <br>
+                <label for="login_password">Password</label>
+                <br>
+                <input class="form-control" id="login_password" name="login_password" type="text" placeholder="Password">
+            </div>
+            <button type="submit" class="form-button">Log in</button>
+            <button onClick="hideLoginPopup()" class="form-button">Exit</button>
+        </form>
+        <p class="formError" id="loginFormError"></p>
     </div>
 </body>
 </html>
