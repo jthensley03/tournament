@@ -14,6 +14,7 @@ const app = firebase.initializeApp(firebaseConfig);
 function showContactPopup() {
     hideLoginPopup();
     hideSignupPopup();
+    hideResetPassPopup();
     document.getElementById("contact-popup").style.display = "block";
     console.log("contact popup shown");
 }
@@ -26,6 +27,7 @@ function hideContactPopup() {
 function showLoginPopup() {
     hideContactPopup();
     hideSignupPopup();
+    hideResetPassPopup();
     document.getElementById("login-popup").style.display = "block";
     console.log("login popup shown");
 }
@@ -38,6 +40,7 @@ function hideLoginPopup() {
 function showSignupPopup() {
     hideLoginPopup();
     hideContactPopup();
+    hideResetPassPopup();
     document.getElementById("signup-popup").style.display = "block";
     console.log("signup popup shown");
 }
@@ -45,6 +48,19 @@ function showSignupPopup() {
 function hideSignupPopup() {
     document.getElementById("signup-popup").style.display = "none";
     console.log("signup popup hidden");
+}
+
+function showResetPassPopup() {
+    hideLoginPopup();
+    hideSignupPopup();
+    hideContactPopup();
+    document.getElementById("resetPass-popup").style.display = "block";
+    console.log("reset pass popup shown");
+}
+
+function hideResetPassPopup() {
+    document.getElementById("resetPass-popup").style.display = "none";
+    console.log("reset pass popup hidden");
 }
 
 function showLogoutButton() {
@@ -85,6 +101,7 @@ function validateContactForm() {
         errorMessage = "Invalid email";
     } else {
         passed = true;
+        hideContactPopup();
     }
     setContactError(errorMessage);
     console.log("passed " + passed);
@@ -119,6 +136,7 @@ function validateSignupForm() {
         errorMessage = "Passwords do not match";
     } else {
         passed = true;
+        hideSignupPopup();
     }
     setSignupError(errorMessage);
     console.log("passed " + passed);
@@ -127,15 +145,37 @@ function validateSignupForm() {
 
 function validateLoginForm() {
     var passed = false;
-    let user_email = document.getElementById("login_email").value;
-    let user_password = document.getElementById("login_password").value;
+    let user_email = document.getElementById("login-email").value;
+    let user_password = document.getElementById("login-password").value;
+    var emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
     var errorMessage = "";
     if (user_email == "") {
         errorMessage = "Please enter your email";
+    } else if(!(emailRegex.test(user_email))) {
+        errorMessage = "Invalid email";
     } else {
         passed = true;
+        hideLoginPopup();
     }
     setLoginError(errorMessage);
+    console.log("passed " + passed);
+    return passed;
+}
+
+function validateResetPassForm() {
+    var passed = false;
+    let user_email = document.getElementById("resetPass-email").value;
+    var emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+    var errorMessage = "";
+    if (user_email == "") {
+        errorMessage = "Please enter your email";
+    } else if(!(emailRegex.test(user_email))) {
+        errorMessage = "Invalid email";
+    } else {
+        passed = true;
+        hideResetPassPopup();
+    }
+    setResetPassError(errorMessage);
     console.log("passed " + passed);
     return passed;
 }
@@ -150,6 +190,10 @@ function setSignupError(errorMessage) {
 
 function setLoginError(errorMessage) {
     document.getElementById("loginFormError").innerHTML = errorMessage;
+}
+
+function setResetPassError(errorMessage) {
+    document.getElementById("resetPassError").innerHTML = errorMessage;
 }
 
 emailjs.init('oI9cSzYQi-CbJD0OE');
@@ -196,6 +240,27 @@ firebase.auth().onAuthStateChanged((user) => {
   }
 });
 
+document.getElementById('resetPassForm').addEventListener('submit', function(event) {
+    resetPass();
+    hideResetPassPopup();
+});
+
+function resetPass() {
+    let userEmail = document.getElementById("resetPass-email").value;
+    firebase.auth().sendPasswordResetEmail(userEmail);
+/*
+    firebase.auth().generatePasswordResetLink(userEmail)
+        .then((link) => {
+            // Construct password reset email template, embed the link and send
+            // using custom SMTP server.
+            return sendCustomPasswordResetEmail(userEmail, userEmail, link);
+        })
+        .catch((error) => {
+            // Some error occurred.
+    });
+*/
+}
+
 function logout() {
     firebase.auth().signOut();
     showLoginButton();
@@ -232,8 +297,8 @@ document.getElementById('loginForm').addEventListener('submit', function(event) 
 
 function login() {
     if(validateLoginForm()) {
-        var email = document.getElementById("login_email").value;
-        var password = document.getElementById("login_password").value;
+        var email = document.getElementById("login-email").value;
+        var password = document.getElementById("login-password").value;
         firebase.auth().signInWithEmailAndPassword(email, password)
             .then((userCredential) => {
                 // Signed in

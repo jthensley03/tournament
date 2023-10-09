@@ -78,6 +78,7 @@
                 <br>
                 <input class="form-control" id="signup_password_con" name="signup_password_con" type="text" placeholder="Password">
             </div>
+            <br>
             <button type="submit" class="form-button">Sign up</button>
             <button onClick="hideSignupPopup()" class="form-button">Exit</button>
         </form>
@@ -86,18 +87,37 @@
     <div id="login-popup" class="container-form-popup">
         <form class="form-popup" id="loginForm" name="loginForm" onsubmit="return false;">
             <div class="form-group">
-                <label for="login_email">Use your email</label>
+                <label for="login-email">Use your email</label>
                 <br>
-                <input name="login_email" type="email" class="form-control" id="login_email" placeholder="Enter Email">
+                <input name="login-email" type="email" class="form-control" id="login-email" placeholder="Enter Email">
                 <br>
-                <label for="login_password">Password</label>
+                <label for="login-password">Password</label>
                 <br>
-                <input class="form-control" id="login_password" name="login_password" type="text" placeholder="Password">
+                <input class="form-control" id="login-password" name="login-password" type="text" placeholder="Password">
             </div>
+            <br>
             <button type="submit" class="form-button">Log in</button>
             <button onClick="hideLoginPopup()" class="form-button">Exit</button>
         </form>
+        <button class="button-as-hyperlink" onClick="showSignupPopup()">Don't have an account? Sign up</button>
+        <br>
+        <button class="button-as-hyperlink" onClick="showResetPassPopup()">Forgot your password?</button>
+        <br>
         <p class="formError" id="loginFormError"></p>
+    </div>
+    <div id="resetPass-popup" class="container-form-popup">
+        <form class="form-popup" id="resetPassForm" name="resetPassForm" onsubmit="return false;">
+            <div class="form-group">
+                <label for="resetPass-email">Enter your email</label>
+                <br>
+                <input name="resetPass-email" type="email" class="form-control" id="resetPass-email" placeholder="Enter Email">
+            </div>
+            <br>
+            <button type="submit" class="form-button">Reset</button>
+            <button onClick="hideResetPassPopup()" class="form-button">Exit</button>
+        </form>
+        <br>
+        <p class="formError" id="resetPassFormError"></p>
     </div>
 </body>
 </html>

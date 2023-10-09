@@ -112,6 +112,15 @@ fade {
 .container-form-popup::-webkit-scrollbar {
     display: none;
 }
+.button-as-hyperlink {
+    background: none!important;
+    border: none;
+    cursor: pointer;
+    padding: 0px 16px;
+}
+.button-as-hyperlink:hover {
+    text-decoration: underline;
+}
 .form-button {
     font-family: "MD Primer Bold",Rubik,Lato,"Lucida Grande","Lucida Sans Unicode",Tahoma,Sans-Serif;
     background-color: #f8f9fa;
