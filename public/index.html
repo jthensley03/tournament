@@ -20,8 +20,11 @@
         <div class="item-login" id="header-button-3"></div>
         <div class="item-signup" id="header-button-2"></div>
     </div>
-    <div class="landing-body">
-        <h1 id="title"></h1>
+    <div class="page">
+        <div class="landing-body">
+            <h1 id="title"></h1>
+        </div>
+        <div id="logged-in-home"><h1>test</h1></div>
     </div>
     <div id="contact-popup" class="container-form-popup">
         <form class="form-popup" id="contactForm" name="contactForm" onsubmit="return false;">
@@ -115,6 +118,19 @@
             <br>
             <button type="submit" class="form-button">Reset</button>
             <button onClick="hideResetPassPopup()" class="form-button">Exit</button>
+        </form>
+        <br>
+        <p class="formError" id="resetPassFormError"></p>
+    </div>
+    <div id="createPresetTour-popup" class="container-form-popup">
+        <form class="form-popup" id="createPresetTourForm" name="createPresetTourForm" onsubmit="return false;">
+            <div class="form-group" id="presetTour-group"></div>
+            <br>
+            <button class="form-button" onClick="addPresetParticipantPopup()">+</button>
+            <button onClick="removePresetParticipantPopup()" class="form-button">-</button>
+            <br>
+            <button type="submit" class="form-button">Create Tournament</button>
+            <button onClick="hidePresetTourPopup()" class="form-button">Exit</button>
         </form>
         <br>
         <p class="formError" id="resetPassFormError"></p>

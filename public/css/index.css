@@ -90,10 +90,10 @@ fade {
     grid-row-end: 2;
     z-index: 2;
 }
-.landing-body {
+.page {
     position: relative;
     top: 100px;
-    left: 100px; 
+    left: 100px;
 }
 .container-form-popup {
     position: fixed;

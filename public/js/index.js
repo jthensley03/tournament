@@ -213,31 +213,38 @@ window.onload = function() {
         }
     });
 }
-//Listening on a forever callback, if the title updates this runs again (the GET request++)
-firebase.database().ref("/title").on("value", ss=>{
-  document.querySelector("#title").innerHTML = ss.val() || "...";
-});
 
-//Updating the title directly in code the PUT request
-function setTitle(title) {
-    firebase.database().ref("/title").set(title);
+function renderTitle(user) {
+    if(user) {
+        firebase.database().ref("/users/" + user.uid + "/fname").on('value', snapshot => {
+            let fname = snapshot.val();
+            document.getElementById('title').innerHTML = "Hello " + fname + "!";
+        });
+    } else {
+        document.getElementById('title').innerHTML = "Hello, please log in or sign up!";
+    }
+    console.log("title set");
+}
+
+function renderLoggedInHome(user) {
+    console.log("render logged in home");
+    let htmlStr = "<button id='createPresetTour' onClick='renderPresetTourPopup()'>Create a preset tournament</button>";
+    document.getElementById("logged-in-home").innerHTML = htmlStr;
+    console.log("render logged in home finished");
 }
 
 firebase.auth().onAuthStateChanged((user) => {
   if (user) {
       // User is signed in, see docs for a list of available properties
       // https://firebase.google.com/docs/reference/js/firebase.User
-      firebase.database().ref("/users/" + user.uid + "/fname").on('value', snapshot => {
-          let fname = snapshot.val();
-          setTitle("Hello " + fname + "!");
-          console.log("title set");
-      });
+      console.log("logged in");
       showLogoutButton();
+      renderLoggedInHome(user);
   } else {
       // User is signed out
       showLoginButton();
-      setTitle("Hello, please log in or sign up!");
   }
+    renderTitle(user);
 });
 
 document.getElementById('resetPassForm').addEventListener('submit', function(event) {
@@ -248,17 +255,6 @@ document.getElementById('resetPassForm').addEventListener('submit', function(eve
 function resetPass() {
     let userEmail = document.getElementById("resetPass-email").value;
     firebase.auth().sendPasswordResetEmail(userEmail);
-/*
-    firebase.auth().generatePasswordResetLink(userEmail)
-        .then((link) => {
-            // Construct password reset email template, embed the link and send
-            // using custom SMTP server.
-            return sendCustomPasswordResetEmail(userEmail, userEmail, link);
-        })
-        .catch((error) => {
-            // Some error occurred.
-    });
-*/
 }
 
 function logout() {
@@ -334,6 +330,30 @@ function loginGoogle () {
         });
 }
 */
+var numPresetParts = 4;
+function addPresetParticipantPopup() {
+    numPresetParts += 1;
+    renderPresetTourPopup();
+}
+
+function removePresetParticipantPopup() {
+    numPresetParts -= 1;
+    renderPresetTourPopup();
+}
+
+function renderPresetTourPopup() {
+    htmlStr = "<label for='preset-name'>Tournament Name</label><br><input name='preset-name' type='text' class='form-control' id='preset-name' placeholder='Name'><br><label for='preset-public'>Public</label><br><input name='preset-public' id='preset-public' type='checkbox' class='form-control' checked><br>";
+    for(i = 1; i<numPresetParts+1; i++) {
+        htmlStr = htmlStr + "<br><label for='preset-part-" + i + "'>Participant " + i + "</label><br><input name='preset-part-" + i + "' id='preset-part-" + i + "' type='text' class='form-control' placeholder='Participant Name'>";
+    }
+    document.getElementById('presetTour-group').innerHTML = htmlStr;
+    document.getElementById('createPresetTour-popup').style.display = 'block';
+}
+
+function hidePresetTourPopup() {
+    document.getElementById('createPresetTour-popup').style.display = 'none';
+}
+
 //pushing data into the DB like a POST request
 //firebase.database().ref("/collectionorsomething").push({"hi":"there"});
 
