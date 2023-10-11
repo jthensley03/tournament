@@ -233,6 +233,10 @@ function renderLoggedInHome(user) {
     console.log("render logged in home finished");
 }
 
+function hideLoggedInHome() {
+    document.getElementById("logged-in-home").innerHTML = "";
+}
+
 firebase.auth().onAuthStateChanged((user) => {
   if (user) {
       // User is signed in, see docs for a list of available properties
@@ -240,9 +244,11 @@ firebase.auth().onAuthStateChanged((user) => {
       console.log("logged in");
       showLogoutButton();
       renderLoggedInHome(user);
+      renderTour("test");
   } else {
       // User is signed out
       showLoginButton();
+      hideLoggedInHome();
   }
     renderTitle(user);
 });
@@ -307,29 +313,7 @@ function login() {
             });
     }
 }
-/*
-function loginGoogle () {
-    var provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth()
-        .signInWithPopup(provider)
-        .then((result) => {
-            var credential = result.credential;
 
-            // This gives you a Google Access Token. You can use it to access the Google API.
-            var token = credential.accessToken;
-            // The signed-in user info.
-            var user = result.user;
-        }).catch((error) => {
-            // Handle Errors here.
-            var errorCode = error.code;
-            var errorMessage = error.message;
-            // The email of the user's account used.
-            var email = error.email;
-            // The firebase.auth.AuthCredential type that was used.
-            var credential = error.credential;
-        });
-}
-*/
 var numPresetParts = 4;
 function addPresetParticipantPopup() {
     numPresetParts += 1;
@@ -352,6 +336,53 @@ function renderPresetTourPopup() {
 
 function hidePresetTourPopup() {
     document.getElementById('createPresetTour-popup').style.display = 'none';
+}
+
+function createPresetTour() {
+    hidePresetTourPopup();
+    let uid = firebase.auth().currentUser.uid;
+    let tour_name = document.getElementById('preset-name').value;
+    let public = document.getElementById('preset-public').value;
+    if(firebase.database().ref("/tournaments/" + uid)) {
+        firebase.database().ref("/tournaments/"+ uid + "/" + tour_name).set({"public": public, "numParticipants" : numPresetParts});
+    } else {
+        firebase.database().ref("/tournaments/" + uid).set({tour_name: {"public": public, "numParticipants" : numPresetParts}}); 
+    }
+    for(i = 1; i<numPresetParts+1; i++) {
+        firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/participants/" + i).set(document.getElementById('preset-part-' + i).value);
+    }
+}
+
+function renderTour(tour_name) {
+    console.log("rendering tour: " + tour_name);
+    let uid = firebase.auth().currentUser.uid;
+    var participants = [];
+    var htmlStr = "<div class='bracket-column'><ul>";
+    var numParts = 0;
+    firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/numParticipants").on('value', snapshot => {
+        numParts = snapshot.val();
+        firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/participants").on('value', snapshot => {
+            var participants = [];
+            snapshot.forEach(function(childSnapshot) {
+                participants.push(childSnapshot.val());
+            });
+            for(let j=0; j<numParts-2; j=j+2) {
+	        htmlStr = htmlStr + "<li class='bracket-item'><div class='bracket-match'><div class='match-left'><h1 class='match-text'>" + participants[j] + "</h1></div><div class='match-right'><h1 class='match-text'>" + participants[j+1] + "</h1></div></div></li>";
+            }
+            console.log("numParts: " + numParts);
+            if(numParts % 2 == 0) {
+                htmlStr = htmlStr + "<li class='bracket-item'><div class='bracket-match'><div class='match-left'><h1 class='match-text'>" + participants[numParts-2] + "</h1></div><div class='match-right'><h1 class='match-text'>" + participants[numParts-1] + "</h1></div></div></li>";
+            } else {
+                htmlStr = htmlStr + "<li class='bracket-item'><div class='bracket-match'><div class='match-solo'><h1 class='match-text-solo'>" + participants[numParts-1] + "</h1></div></div></li>";
+            }
+            htmlStr = htmlStr + "</ul></div>";
+            document.getElementById('tournament-bracket').innerHTML = htmlStr;
+        });
+    });
+}
+
+function hideTour() {
+    document.getElementById('tournament-bracket').innerHTML = "";
 }
 
 //pushing data into the DB like a POST request
