@@ -14,6 +14,11 @@ body {
 body::-webkit-scrollbar {
     display: none;
 }
+.tournament-bracket {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
 .bracket-item {
     list-style-type: none;
     display: flex;
@@ -93,6 +98,7 @@ body::-webkit-scrollbar {
     outline: none;
 }
 .bracket-column{
+    position: relative;
     display: block;
     margin-left: -3px;
     flex: 1;

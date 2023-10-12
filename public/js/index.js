@@ -349,7 +349,7 @@ function createPresetTour() {
         firebase.database().ref("/tournaments/" + uid).set({tour_name: {"public": public, "numParticipants" : numPresetParts}}); 
     }
     for(i = 1; i<numPresetParts+1; i++) {
-        firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/participants/" + i).set(document.getElementById('preset-part-' + i).value);
+        firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round1/" + i).set(document.getElementById('preset-part-' + i).value);
     }
 }
 
@@ -357,28 +357,83 @@ function renderTour(tour_name) {
     console.log("rendering tour: " + tour_name);
     let uid = firebase.auth().currentUser.uid;
     var participants = [];
-    var htmlStr = "<div class='bracket-column'><ul>";
+    var htmlStr = "";
     var numParts = 0;
+    var matchIdNum = 1;
     firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/numParticipants").on('value', snapshot => {
         numParts = snapshot.val();
-        firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/participants").on('value', snapshot => {
-            var participants = [];
-            snapshot.forEach(function(childSnapshot) {
-                participants.push(childSnapshot.val());
+        for(let i=1; i<(Math.ceil(Math.sqrt(numParts+1)) + 1); i++) {
+            console.log("round " + i);
+            firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/round" + i).on('value', snapshot => {
+                if(snapshot.val()) {
+                    htmlStr += "<div class='bracket-column' id='bracket-column-" + i + "'><ul>"
+                    console.log("this should not be undefined: " + snapshot.val());
+                    var participants = [];
+                    snapshot.forEach(function(childSnapshot) {
+                        participants.push(childSnapshot.val());
+                    });
+                    for(let j=0; j<participants.length-2; j=j+2) {
+                        htmlStr = htmlStr + `<li class='bracket-item'>
+                                                 <div class='bracket-match' id='bracket-match-${matchIdNum}'>
+                                                     <div class='match-left' id='match-${matchIdNum}-left' onclick="leftWin('match-${matchIdNum}', '${participants[j]}', ${i}, ${j+1}, '${tour_name}', '${uid}')">
+                                                         <h1 class='match-text' id='match-${matchIdNum}-left-text'>${participants[j]}</h1>
+                                                     </div>
+                                                     <div class='match-right' id='match-${matchIdNum}-right' onclick="rightWin('match-${matchIdNum}', '${participants[j+1]}', ${i}, ${j+2}, '${tour_name}', '${uid}')">
+                                                         <h1 class='match-text' id='match-${matchIdNum}-right-text'>${participants[j+1]}</h1>
+                                                     </div>
+                                                 </div>
+                                             </li>`;
+                        matchIdNum++;
+                    }
+                    if(participants.length % 2 == 0) {
+                        htmlStr = htmlStr + `<li class='bracket-item'>
+                                                 <div class='bracket-match' id='bracket-match-" + matchIdNum + "'>
+                                                     <div class='match-left' id='match-${matchIdNum}-left' onclick="leftWin('match-${matchIdNum}', '${participants[participants.length-2]}', ${i}, ${participants.length-2}, '${tour_name}', '${uid}')">
+                                                         <h1 class='match-text' id='match-${matchIdNum}-left-text'>${participants[participants.length-2]}</h1>
+                                                     </div>
+                                                     <div class='match-right' id='match-${matchIdNum}-right' onclick="rightWin('match-${matchIdNum}', '${participants[participants.length-1]}', ${i}, ${participants.length-1}, '${tour_name}', '${uid}')">
+                                                         <h1 class='match-text' id='match-${matchIdNum}-right-text'>${participants[participants.length-1]}</h1>
+                                                     </div>
+                                                 </div>
+                                             </li>`;
+                    } else {
+                        htmlStr = htmlStr + "<li class='bracket-item'><div class='bracket-match' id='bracket-match-" + matchIdNum + "'><div class='match-solo'><h1 class='match-text-solo'>" + participants[participants.length-1] + "</h1></div></div></li>";
+                    }
+                    matchIdNum++;
+                    htmlStr = htmlStr + "</ul></div>";
+                    document.getElementById('tournament-bracket').innerHTML = htmlStr;
+/*
+                    let matchHeight = document.getElementById('bracket-match-1').offsetHeight;
+                    console.log("match-height" + matchHeight);
+                    let heightStr = Math.ceil(((matchHeight*0.5) + (matchHeight*0.15)) * (i-1)).toString() + "px";
+                    console.log("heightStr" + heightStr);
+                    document.getElementById("bracket-column-" + i).style.top = heightStr;
+*/
+                }
             });
-            for(let j=0; j<numParts-2; j=j+2) {
-	        htmlStr = htmlStr + "<li class='bracket-item'><div class='bracket-match'><div class='match-left'><h1 class='match-text'>" + participants[j] + "</h1></div><div class='match-right'><h1 class='match-text'>" + participants[j+1] + "</h1></div></div></li>";
-            }
-            console.log("numParts: " + numParts);
-            if(numParts % 2 == 0) {
-                htmlStr = htmlStr + "<li class='bracket-item'><div class='bracket-match'><div class='match-left'><h1 class='match-text'>" + participants[numParts-2] + "</h1></div><div class='match-right'><h1 class='match-text'>" + participants[numParts-1] + "</h1></div></div></li>";
-            } else {
-                htmlStr = htmlStr + "<li class='bracket-item'><div class='bracket-match'><div class='match-solo'><h1 class='match-text-solo'>" + participants[numParts-1] + "</h1></div></div></li>";
-            }
-            htmlStr = htmlStr + "</ul></div>";
-            document.getElementById('tournament-bracket').innerHTML = htmlStr;
-        });
+            console.log('end of for');
+        }
     });
+}
+
+function rightWin(id, name, round, key, tour_name, uid) {
+    console.log("rightWin: " + id);
+    document.getElementById(id + '-right').style.backgroundColor = '#447241';
+    document.getElementById(id + '-right-text').style.color = '#ffffff';
+    document.getElementById(id + '-left').onclick = "";
+    document.getElementById(id + '-right').onclick = "";
+    firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round" + (round+1) + "/" + key).set(name);
+}
+
+function leftWin(id, name, round, key, tour_name, uid) {
+    console.log("leftWin: " + id);
+    document.getElementById(id + '-left').style.backgroundColor = '#447241';
+    document.getElementById(id + '-left-text').style.color = '#ffffff';
+    document.getElementById(id + '-left').onclick = "";
+    document.getElementById(id + '-right').onclick = "";
+//    firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round" + round + "/" + key + "/win").set("true");
+//    firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round" + round + "/" + (key+1) + "/win").set("false");
+    firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round" + (round+1) + "/" + key).set(name);
 }
 
 function hideTour() {
