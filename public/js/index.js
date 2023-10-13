@@ -349,7 +349,8 @@ function createPresetTour() {
         firebase.database().ref("/tournaments/" + uid).set({tour_name: {"public": public, "numParticipants" : numPresetParts}}); 
     }
     for(i = 1; i<numPresetParts+1; i++) {
-        firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round1/" + i).set(document.getElementById('preset-part-' + i).value);
+        firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round1/" + i + "/name").set(document.getElementById('preset-part-' + i).value);
+        firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round1/" + i + "/win").set("false");
     }
 }
 
@@ -357,47 +358,111 @@ function renderTour(tour_name) {
     console.log("rendering tour: " + tour_name);
     let uid = firebase.auth().currentUser.uid;
     var participants = [];
+    var wins = [];
+    var keys = [];
     var htmlStr = "";
     var numParts = 0;
     var matchIdNum = 1;
     firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/numParticipants").on('value', snapshot => {
         numParts = snapshot.val();
-        for(let i=1; i<(Math.ceil(Math.sqrt(numParts+1)) + 1); i++) {
+        for(let i=1; i<(Math.ceil(Math.sqrt(numParts+1)) + 2); i++) {
             console.log("round " + i);
             firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/round" + i).on('value', snapshot => {
                 if(snapshot.val()) {
-                    htmlStr += "<div class='bracket-column' id='bracket-column-" + i + "'><ul>"
-                    console.log("this should not be undefined: " + snapshot.val());
-                    var participants = [];
+                    htmlStr += "<div class='bracket-column' id='bracket-column-" + i + "'><ul>";
+                    participants = [];
+                    wins = [];
+                    keys = [];
                     snapshot.forEach(function(childSnapshot) {
-                        participants.push(childSnapshot.val());
+                        keys.push(childSnapshot.key);
+                        childSnapshot.forEach(function(childSnapshot) {
+                            if(childSnapshot.val() !== "true" && childSnapshot.val() !== "false") {
+                                participants.push(childSnapshot.val());
+                            } else {
+                                wins.push(childSnapshot.val());
+                            }
+                        });
                     });
+                    console.log("participants: " + participants);
+                    console.log("wins: " + wins);
+                    console.log("keys: " + keys);
                     for(let j=0; j<participants.length-2; j=j+2) {
-                        htmlStr = htmlStr + `<li class='bracket-item'>
-                                                 <div class='bracket-match' id='bracket-match-${matchIdNum}'>
-                                                     <div class='match-left' id='match-${matchIdNum}-left' onclick="leftWin('match-${matchIdNum}', '${participants[j]}', ${i}, ${j+1}, '${tour_name}', '${uid}')">
-                                                         <h1 class='match-text' id='match-${matchIdNum}-left-text'>${participants[j]}</h1>
+                        if(wins[j] == "true" || wins[j+1] == "true") {
+                            htmlStr = htmlStr + `<li class='bracket-item'>
+                                                     <div class='bracket-match' id='bracket-match-${matchIdNum}'>
+                                                         <div class='match-left' id='match-${matchIdNum}-left'>
+                                                             <h1 class='match-text' id='match-${matchIdNum}-left-text'>${participants[j]}</h1>
+                                                         </div>
+                                                         <div class='match-right' id='match-${matchIdNum}-right'>                                        
+                                                             <h1 class='match-text' id='match-${matchIdNum}-right-text'>${participants[j+1]}</h1>
+                                                         </div>
                                                      </div>
-                                                     <div class='match-right' id='match-${matchIdNum}-right' onclick="rightWin('match-${matchIdNum}', '${participants[j+1]}', ${i}, ${j+2}, '${tour_name}', '${uid}')">
-                                                         <h1 class='match-text' id='match-${matchIdNum}-right-text'>${participants[j+1]}</h1>
+                                                 </li>`;
+                        } else {
+                            htmlStr = htmlStr + `<li class='bracket-item'>
+                                                     <div class='bracket-match' id='bracket-match-${matchIdNum}'>
+                                                         <div class='match-left' id='match-${matchIdNum}-left' onclick="win('${participants[j]}', ${i}, ${keys[j]}, '${tour_name}', '${uid}')">
+                                                             <h1 class='match-text' id='match-${matchIdNum}-left-text'>${participants[j]}</h1>
+                                                         </div>
+                                                         <div class='match-right' id='match-${matchIdNum}-right' onclick="win('${participants[j+1]}', ${i}, ${keys[j+1]}, '${tour_name}', '${uid}')">
+                                                             <h1 class='match-text' id='match-${matchIdNum}-right-text'>${participants[j+1]}</h1>
+                                                         </div>
                                                      </div>
-                                                 </div>
-                                             </li>`;
+                                                 </li>`;
+                        }
                         matchIdNum++;
                     }
                     if(participants.length % 2 == 0) {
+                        if(wins[participants.length-2] == "true" || wins[participants.length-1] == "true") {
+                            htmlStr = htmlStr + `<li class='bracket-item'>
+                                                     <div class='bracket-match' id='bracket-match-" + matchIdNum + "'>
+                                                         <div class='match-left' id='match-${matchIdNum}-left'>       
+                                                             <h1 class='match-text' id='match-${matchIdNum}-left-text'>${participants[participants.length-2]}</h1>
+                                                         </div>
+                                                         <div class='match-right' id='match-${matchIdNum}-right'>    
+                                                             <h1 class='match-text' id='match-${matchIdNum}-right-text'>${participants[participants.length-1]}</h1>
+                                                         </div>
+                                                     </div>
+                                                 </li>`;
+                        } else {
+                            htmlStr = htmlStr + `<li class='bracket-item'>
+                                                     <div class='bracket-match' id='bracket-match-" + matchIdNum + "'>
+                                                         <div class='match-left' id='match-${matchIdNum}-left' onclick="win('${participants[participants.length-2]}', ${i}, ${keys[participants.length-2]}, '${tour_name}', '${uid}')">
+                                                             <h1 class='match-text' id='match-${matchIdNum}-left-text'>${participants[participants.length-2]}</h1>
+                                                         </div>
+                                                         <div class='match-right' id='match-${matchIdNum}-right' onclick="win('${participants[participants.length-1]}', ${i}, ${keys[participants.length-1]}, '${tour_name}', '${uid}')">
+                                                             <h1 class='match-text' id='match-${matchIdNum}-right-text'>${participants[participants.length-1]}</h1>
+                                                         </div>
+                                                     </div>
+                                                 </li>`;
+                        }
+                    } else if(participants.length == 1) {
+                        console.log("hit length = 1")
                         htmlStr = htmlStr + `<li class='bracket-item'>
-                                                 <div class='bracket-match' id='bracket-match-" + matchIdNum + "'>
-                                                     <div class='match-left' id='match-${matchIdNum}-left' onclick="leftWin('match-${matchIdNum}', '${participants[participants.length-2]}', ${i}, ${participants.length-2}, '${tour_name}', '${uid}')">
-                                                         <h1 class='match-text' id='match-${matchIdNum}-left-text'>${participants[participants.length-2]}</h1>
+                                                     <div class='bracket-match' id='bracket-match-" + matchIdNum + "'>
+                                                         <div class='match-solo' id='match-${matchIdNum}-solo'>                                       
+                                                             <h1 class='match-text-solo'>${participants[participants.length-1]}</h1>
+                                                         </div>
                                                      </div>
-                                                     <div class='match-right' id='match-${matchIdNum}-right' onclick="rightWin('match-${matchIdNum}', '${participants[participants.length-1]}', ${i}, ${participants.length-1}, '${tour_name}', '${uid}')">
-                                                         <h1 class='match-text' id='match-${matchIdNum}-right-text'>${participants[participants.length-1]}</h1>
-                                                     </div>
-                                                 </div>
-                                             </li>`;
+                                                 </li>`;
                     } else {
-                        htmlStr = htmlStr + "<li class='bracket-item'><div class='bracket-match' id='bracket-match-" + matchIdNum + "'><div class='match-solo'><h1 class='match-text-solo'>" + participants[participants.length-1] + "</h1></div></div></li>";
+                        if(wins[participants.length-1] == "true") {
+                            htmlStr = htmlStr + `<li class='bracket-item'>
+                                                     <div class='bracket-match' id='bracket-match-" + matchIdNum + "'>
+                                                         <div class='match-solo' id='match-${matchIdNum}-solo'>                                                    
+                                                             <h1 class='match-text-solo'>${participants[participants.length-1]}</h1>
+                                                         </div>
+                                                     </div>
+                                                 </li>`;
+                        } else {
+                            htmlStr = htmlStr + `<li class='bracket-item'>
+                                                     <div class='bracket-match' id='bracket-match-" + matchIdNum + "'>
+                                                         <div class='match-solo' id='match-${matchIdNum}-solo' onclick="win('${participants[participants.length-1]}', ${i}, ${keys[participants.length-1]}, '${tour_name}', '${uid}')">
+                                                             <h1 class='match-text-solo'>${participants[participants.length-1]}</h1>
+                                                         </div>
+                                                     </div>
+                                                 </li>`;
+                        }
                     }
                     matchIdNum++;
                     htmlStr = htmlStr + "</ul></div>";
@@ -416,24 +481,11 @@ function renderTour(tour_name) {
     });
 }
 
-function rightWin(id, name, round, key, tour_name, uid) {
-    console.log("rightWin: " + id);
-    document.getElementById(id + '-right').style.backgroundColor = '#447241';
-    document.getElementById(id + '-right-text').style.color = '#ffffff';
-    document.getElementById(id + '-left').onclick = "";
-    document.getElementById(id + '-right').onclick = "";
-    firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round" + (round+1) + "/" + key).set(name);
-}
-
-function leftWin(id, name, round, key, tour_name, uid) {
-    console.log("leftWin: " + id);
-    document.getElementById(id + '-left').style.backgroundColor = '#447241';
-    document.getElementById(id + '-left-text').style.color = '#ffffff';
-    document.getElementById(id + '-left').onclick = "";
-    document.getElementById(id + '-right').onclick = "";
-//    firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round" + round + "/" + key + "/win").set("true");
-//    firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round" + round + "/" + (key+1) + "/win").set("false");
-    firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round" + (round+1) + "/" + key).set(name);
+function win(name, round, key, tour_name, uid) {
+    firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round" + round + "/" + key + "/win").set("true");
+    firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round" + (round+1) + "/" + key + "/name").set(name);
+    firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round" + (round+1) + "/" + key + "/win").set("false");
+    renderTour(tour_name);
 }
 
 function hideTour() {
