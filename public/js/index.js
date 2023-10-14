@@ -235,7 +235,7 @@ firebase.auth().onAuthStateChanged((user) => {
 });
 
 function generateViewLink(uid, tour_name) {
-    const myUrl = new URL('http://cpeg470-tournament.web.app/');
+    const myUrl = new URL('https://cpeg470-tournament.web.app/');
     myUrl.searchParams.append("type", "view");
     myUrl.searchParams.append('uid', uid);
     myUrl.searchParams.append('tour_name', tour_name);
@@ -247,7 +247,7 @@ async function copyViewLink(tour_name, uid) {
 }
 
 function generateJoinLink(uid, tour_name) {
-    const myUrl = new URL('http://127.0.0.1:5002/');
+    const myUrl = new URL('https://cpeg470-tournament.web.app/');
     myUrl.searchParams.append("type", "join");
     myUrl.searchParams.append('uid', uid);
     myUrl.searchParams.append('tour_name', tour_name);
