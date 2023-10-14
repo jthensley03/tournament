@@ -214,44 +214,296 @@ window.onload = function() {
     });
 }
 
-function renderTitle(user) {
-    if(user) {
-        firebase.database().ref("/users/" + user.uid + "/fname").on('value', snapshot => {
-            let fname = snapshot.val();
-            document.getElementById('title').innerHTML = "Hello " + fname + "!";
-        });
-    } else {
-        document.getElementById('title').innerHTML = "Hello, please log in or sign up!";
-    }
-    console.log("title set");
-}
-
-function renderLoggedInHome(user) {
-    console.log("render logged in home");
-    let htmlStr = "<button id='createPresetTour' onClick='renderPresetTourPopup()'>Create a preset tournament</button>";
-    document.getElementById("logged-in-home").innerHTML = htmlStr;
-    console.log("render logged in home finished");
-}
-
-function hideLoggedInHome() {
-    document.getElementById("logged-in-home").innerHTML = "";
-}
-
 firebase.auth().onAuthStateChanged((user) => {
-  if (user) {
-      // User is signed in, see docs for a list of available properties
-      // https://firebase.google.com/docs/reference/js/firebase.User
-      console.log("logged in");
-      showLogoutButton();
-      renderLoggedInHome(user);
-      renderTour("test");
-  } else {
-      // User is signed out
-      showLoginButton();
-      hideLoggedInHome();
-  }
-    renderTitle(user);
+    if (user) {
+        showLogoutButton();
+    } else {
+        showLoginButton();
+    }
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('type')=='view'){
+        renderPage('viewTour', urlParams.get('tour_name'), urlParams.get('uid'));
+    } else if (urlParams.get('type')=='join') {
+        renderPage('joinTour', urlParams.get('tour_name'), urlParams.get('uid'));
+    } else {
+        if (user) {
+            renderPage('logged-in-home', '');
+        } else {
+            renderPage('logged-out-home', '');
+        }
+    }
 });
+
+function generateViewLink(uid, tour_name) {
+    const myUrl = new URL('http://cpeg470-tournament.web.app/');
+    myUrl.searchParams.append("type", "view");
+    myUrl.searchParams.append('uid', uid);
+    myUrl.searchParams.append('tour_name', tour_name);
+    return myUrl.href;
+}
+
+async function copyViewLink(tour_name, uid) {
+    await navigator.clipboard.writeText(generateViewLink(uid, tour_name));
+}
+
+function generateJoinLink(uid, tour_name) {
+    const myUrl = new URL('http://127.0.0.1:5002/');
+    myUrl.searchParams.append("type", "join");
+    myUrl.searchParams.append('uid', uid);
+    myUrl.searchParams.append('tour_name', tour_name);
+    return myUrl.href;
+}
+
+async function copyJoinLink(tour_name, uid) {
+    await navigator.clipboard.writeText(generateJoinLink(uid, tour_name));
+}
+
+function renderPage(pageId, tour_name, uid) {
+    console.log("rendering page: " + pageId);
+    if(pageId == 'logged-in-home') {
+        renderLoggedInHome();
+    } else if (pageId == 'logged-out-home') {
+        renderLoggedOutHome();
+    } else if (pageId == 'tour') {
+        renderTour(tour_name);
+    } else if (pageId == 'home') {
+        if(firebase.auth().currentUser) {
+            renderLoggedInHome();
+        } else {
+            renderLoggedOutHome();
+        }
+    } else if (pageId == 'viewTour') {
+        renderTourView(tour_name, uid);
+    } else if (pageId == 'joinTour') {
+        renderTourJoin(tour_name, uid);
+    }
+}
+
+function alreadyHere(uid, tour_name, new_uid) {
+    console.log("inside already here");
+    return new Promise((resolve) => {
+        var here = false;
+        firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/round1/" + new_uid).once('value', snapshot => {
+            if(snapshot.val()) {
+                here = true;
+            }
+            console.log("already here: " + here);
+            resolve(here);
+        });
+    });
+}
+
+async function renderTourJoin(tour_name, uid) {
+    if(firebase.auth().currentUser) {
+        //insert username into uid
+        let new_uid = firebase.auth().currentUser.uid;
+        const here = await alreadyHere(uid, tour_name, new_uid);
+        if(!here) {
+            const fname = await getFname(new_uid);
+            const numParts = await helperGetNumParticipants(tour_name, uid);
+            let newNum = parseInt(numParts)+1;
+            firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/numParticipants").set(newNum);
+            firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/round1/" + new_uid + "/name").set(fname);
+            firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/round1/" + new_uid + "/win").set('false');
+        } else {
+            console.log("you are already in this bracket");
+        }
+        renderPage('viewTour', tour_name, uid);
+    } else {
+        //force log in then call renderTourJoin
+        showLoginPopup();
+        renderTourJoin(tour_name, uid);
+    }
+}
+
+async function renderTourView(tour_name, uid) {
+    console.log("inside tour view");
+    const numParts = await helperGetNumParticipants(tour_name, uid);
+    const public = await helperGetPublic(tour_name, uid);
+    const canView = await helperGetCanView(tour_name, uid);
+    let htmlStr = "<div id='tournament-bracket' class='tournament-bracket'>";
+    for(let i=1; i<(Math.ceil(Math.sqrt(numParts+1)) + 2); i++) {
+        console.log("inside out for loop");
+        htmlStr += "<div class='bracket-column' id='bracket-column-" + i + "'><ul>";
+        const round = await helperGetRound(tour_name, uid, i);
+        if(round[0]) {
+            console.log("round: " + round);
+            const keys = await helperGetKeys(tour_name, uid, i);
+            let participants = [];
+            let wins = [];
+            for(let j=0; j<round.length; j++) {
+                if(round[j] == "true" || round[j] == "false") {
+                    wins.push(round[j]);
+                } else {
+                    participants.push(round[j]);
+                }
+            }
+            let matchIdNum = 1;
+            for(let j=0; j<participants.length-2; j=j+2) {
+                htmlStr = htmlStr + `<li class='bracket-item'>
+                                         <div class='bracket-match' id='bracket-match-${matchIdNum}'>
+                                             <div class='match-left' id='match-${matchIdNum}-left'>
+                                                 <h1 class='match-text' id='match-${matchIdNum}-left-text'>${participants[j]}</h1>
+                                             </div>
+                                             <div class='match-right' id='match-${matchIdNum}-right'>
+                                                 <h1 class='match-text' id='match-${matchIdNum}-right-text'>${participants[j+1]}</h1>
+                                             </div>
+                                         </div>
+                                     </li>`;
+                matchIdNum++;
+            }
+            if(participants.length % 2 == 0) {
+                htmlStr = htmlStr + `<li class='bracket-item'>
+                                         <div class='bracket-match' id='bracket-match-" + matchIdNum + "'>
+                                             <div class='match-left' id='match-${matchIdNum}-left'>
+                                                 <h1 class='match-text' id='match-${matchIdNum}-left-text'>${participants[participants.length-2]}</h1>
+                                             </div>
+                                             <div class='match-right' id='match-${matchIdNum}-right'>
+                                                 <h1 class='match-text' id='match-${matchIdNum}-right-text'>${participants[participants.length-1]}</h1>
+                                             </div>
+                                         </div>
+                                     </li>`;
+            } else if(participants.length == 1) {
+                console.log("hit length = 1");
+                    htmlStr = htmlStr + `<li class='bracket-item'>
+                                             <div class='bracket-match' id='bracket-match-" + matchIdNum + "'>
+                                                 <div class='match-solo' id='match-${matchIdNum}-solo'>
+                                                     <h1 class='match-text-solo'>${participants[participants.length-1]}</h1>
+                                                 </div>
+                                             </div>
+                                         </li>`;
+            } else {
+                if(wins[participants.length-1] == "true") {
+                    htmlStr = htmlStr + `<li class='bracket-item'>
+                                             <div class='bracket-match' id='bracket-match-" + matchIdNum + "'>
+                                                 <div class='match-solo' id='match-${matchIdNum}-solo'>
+                                                     <h1 class='match-text-solo'>${participants[participants.length-1]}</h1>
+                                                 </div>
+                                             </div>
+                                         </li>`;
+                }
+            }
+            matchIdNum++;
+            htmlStr = htmlStr + "</ul></div>";
+        }
+    }
+    htmlStr = htmlStr + "</div>";
+    document.getElementById('page').innerHTML = htmlStr;
+}
+
+function helperGetCanView(tour_name, uid) {
+    return new Promise((resolve) => {
+        firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/canView").once('value', snapshot => {
+            let canView = [];
+            snapshot.forEach(function(childSnapshot) {
+                canView.push(childSnapshot.val());
+            });
+            resolve(canView);
+        });
+    });
+}
+
+function helperGetNumParticipants(tour_name, uid) {
+    console.log("inside getNumParts");
+    return new Promise((resolve) => {
+        firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/numParticipants").once('value', snapshot => {
+            resolve(snapshot.val());
+        });
+    });
+}
+
+function helperGetPublic(tour_name, uid) {
+    return new Promise((resolve) => {
+        firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/public").once('value', snapshot => {
+            resolve(snapshot.val());
+        });
+    });
+}
+
+
+function helperGetRound(tour_name, uid, round) {
+    console.log("getRound: " + round);
+    return new Promise((resolve) => {
+        firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/round" + round).once('value', snapshot => {
+            let round = [];
+            snapshot.forEach(function(childSnapshot) {
+                childSnapshot.forEach(function(childSnapshot) {
+                    round.push(childSnapshot.val());
+                });
+            });
+            resolve(round);
+        });
+    });
+}
+
+function helperGetKeys(tour_name, uid, round) {
+    return new Promise((resolve) => {
+        firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/round" + round).once('value', snapshot => {
+            let keys = [];
+            snapshot.forEach(function(childSnapshot) {
+                keys.push(childSnapshot.key);
+            });
+            resolve(keys);
+        });
+    });
+}
+
+function renderLoggedOutHome() {
+    var htmlStr = `<div class="landing-body">
+                       <h1 id="title">Hello, please log in or sign up!</h1>
+                   </div>`;
+    document.getElementById('page').innerHTML = htmlStr;
+}
+
+async function renderLoggedInHome() {
+    console.log('renderLoggedInHome()');
+    let uid = firebase.auth().currentUser.uid;
+    console.log(uid);
+    var htmlStr = "";
+    const fname = await getFname(uid);
+    htmlStr = `<div id="logged-in-home">
+                   <h1 id="title">Hello, ${fname}</h1>
+                   <button id='createPresetTour' onClick='renderPresetTourPopup()'>Create a preset tournament</button>
+               </div>
+               <div class="tour-menu" id="logged-out-tour-menu">
+                   <div class="menu-header">
+                       <p class="menu-name">Tournament Name</p>
+                       <p class="menu-owner">Owner</p>
+                   </div>
+                   <div class="menu-scrollable">`;
+    const allMyTour = await returnAllMyTour(uid);
+    for(let i=0; i<allMyTour.length; i++) {
+        htmlStr += `<div class="menu-item" onclick="renderPage('tour', '${allMyTour[i]}')">
+                                <p class="menu-item-name">${allMyTour[i]}</p>
+                                <p class="menu-item-owner">${fname}</p>
+                            </div>`;
+    }
+    htmlStr += "</div></div>";
+    console.log(htmlStr);
+    document.getElementById("page").innerHTML = htmlStr;
+}
+
+function getFname(uid) {
+    return new Promise((resolve) => {
+        firebase.database().ref("/users/" + uid + "/fname").once('value', snapshot => {
+            let fname = snapshot.val();
+            resolve(fname);
+        });
+    });
+}
+
+function returnAllMyTour(uid) {
+    console.log("hit allMyTour");
+    return new Promise((resolve) => {
+        firebase.database().ref("/tournaments/" + uid).once('value', snapshot => {
+            let allMyTour = [];
+            snapshot.forEach(function(childSnapshot) {
+                allMyTour.push(childSnapshot.key);
+            });
+            resolve(allMyTour);
+        });
+    });
+}
 
 document.getElementById('resetPassForm').addEventListener('submit', function(event) {
     resetPass();
@@ -344,14 +596,15 @@ function createPresetTour() {
     let tour_name = document.getElementById('preset-name').value;
     let public = document.getElementById('preset-public').value;
     if(firebase.database().ref("/tournaments/" + uid)) {
-        firebase.database().ref("/tournaments/"+ uid + "/" + tour_name).set({"public": public, "numParticipants" : numPresetParts});
+        firebase.database().ref("/tournaments/"+ uid + "/" + tour_name).set({"public": public, "numParticipants" : numPresetParts, "canView": {0:"ignore"}});
     } else {
-        firebase.database().ref("/tournaments/" + uid).set({tour_name: {"public": public, "numParticipants" : numPresetParts}}); 
+        firebase.database().ref("/tournaments/" + uid).set({tour_name: {"public": public, "numParticipants" : numPresetParts, "canView": {0:"ignore"}}}); 
     }
     for(i = 1; i<numPresetParts+1; i++) {
         firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round1/" + i + "/name").set(document.getElementById('preset-part-' + i).value);
         firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round1/" + i + "/win").set("false");
     }
+    renderPage('tour', tour_name);
 }
 
 function renderTour(tour_name) {
@@ -360,7 +613,9 @@ function renderTour(tour_name) {
     var participants = [];
     var wins = [];
     var keys = [];
-    var htmlStr = "";
+    var htmlStr = `<button onclick="copyViewLink('${tour_name}', '${uid}')">Share Tournament</button>
+                   <button onclick="copyJoinLink('${tour_name}', '${uid}')">Invite your friends to join!</button>
+                   <div id='tournament-bracket' class='tournament-bracket'>`;
     var numParts = 0;
     var matchIdNum = 1;
     firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/numParticipants").on('value', snapshot => {
@@ -401,10 +656,10 @@ function renderTour(tour_name) {
                         } else {
                             htmlStr = htmlStr + `<li class='bracket-item'>
                                                      <div class='bracket-match' id='bracket-match-${matchIdNum}'>
-                                                         <div class='match-left' id='match-${matchIdNum}-left' onclick="win('${participants[j]}', ${i}, ${keys[j]}, '${tour_name}', '${uid}')">
+                                                         <div class='match-left' id='match-${matchIdNum}-left' onclick="win('${participants[j]}', ${i}, '${keys[j]}', '${tour_name}', '${uid}')">
                                                              <h1 class='match-text' id='match-${matchIdNum}-left-text'>${participants[j]}</h1>
                                                          </div>
-                                                         <div class='match-right' id='match-${matchIdNum}-right' onclick="win('${participants[j+1]}', ${i}, ${keys[j+1]}, '${tour_name}', '${uid}')">
+                                                         <div class='match-right' id='match-${matchIdNum}-right' onclick="win('${participants[j+1]}', ${i}, '${keys[j+1]}', '${tour_name}', '${uid}')">
                                                              <h1 class='match-text' id='match-${matchIdNum}-right-text'>${participants[j+1]}</h1>
                                                          </div>
                                                      </div>
@@ -427,10 +682,10 @@ function renderTour(tour_name) {
                         } else {
                             htmlStr = htmlStr + `<li class='bracket-item'>
                                                      <div class='bracket-match' id='bracket-match-" + matchIdNum + "'>
-                                                         <div class='match-left' id='match-${matchIdNum}-left' onclick="win('${participants[participants.length-2]}', ${i}, ${keys[participants.length-2]}, '${tour_name}', '${uid}')">
+                                                         <div class='match-left' id='match-${matchIdNum}-left' onclick="win('${participants[participants.length-2]}', ${i},'${keys[participants.length-2]}', '${tour_name}', '${uid}')">
                                                              <h1 class='match-text' id='match-${matchIdNum}-left-text'>${participants[participants.length-2]}</h1>
                                                          </div>
-                                                         <div class='match-right' id='match-${matchIdNum}-right' onclick="win('${participants[participants.length-1]}', ${i}, ${keys[participants.length-1]}, '${tour_name}', '${uid}')">
+                                                         <div class='match-right' id='match-${matchIdNum}-right' onclick="win('${participants[participants.length-1]}', ${i}, '${keys[participants.length-1]}', '${tour_name}', '${uid}')">
                                                              <h1 class='match-text' id='match-${matchIdNum}-right-text'>${participants[participants.length-1]}</h1>
                                                          </div>
                                                      </div>
@@ -457,7 +712,7 @@ function renderTour(tour_name) {
                         } else {
                             htmlStr = htmlStr + `<li class='bracket-item'>
                                                      <div class='bracket-match' id='bracket-match-" + matchIdNum + "'>
-                                                         <div class='match-solo' id='match-${matchIdNum}-solo' onclick="win('${participants[participants.length-1]}', ${i}, ${keys[participants.length-1]}, '${tour_name}', '${uid}')">
+                                                         <div class='match-solo' id='match-${matchIdNum}-solo' onclick="win('${participants[participants.length-1]}', ${i}, '${keys[participants.length-1]}', '${tour_name}', '${uid}')">
                                                              <h1 class='match-text-solo'>${participants[participants.length-1]}</h1>
                                                          </div>
                                                      </div>
@@ -466,7 +721,6 @@ function renderTour(tour_name) {
                     }
                     matchIdNum++;
                     htmlStr = htmlStr + "</ul></div>";
-                    document.getElementById('tournament-bracket').innerHTML = htmlStr;
 /*
                     let matchHeight = document.getElementById('bracket-match-1').offsetHeight;
                     console.log("match-height" + matchHeight);
@@ -475,8 +729,13 @@ function renderTour(tour_name) {
                     document.getElementById("bracket-column-" + i).style.top = heightStr;
 */
                 }
+                console.log("i: " + i + " vs. " + (Math.ceil(Math.sqrt(numParts+1))+1));
+                if(i == (Math.ceil(Math.sqrt(numParts+1))+1)) {
+                    console.log("inside if");
+                    htmlStr = htmlStr + "</div>";
+                    document.getElementById('page').innerHTML = htmlStr;
+                }
             });
-            console.log('end of for');
         }
     });
 }
@@ -487,13 +746,3 @@ function win(name, round, key, tour_name, uid) {
     firebase.database().ref("/tournaments/"+ uid + "/" + tour_name + "/round" + (round+1) + "/" + key + "/win").set("false");
     renderTour(tour_name);
 }
-
-function hideTour() {
-    document.getElementById('tournament-bracket').innerHTML = "";
-}
-
-//pushing data into the DB like a POST request
-//firebase.database().ref("/collectionorsomething").push({"hi":"there"});
-
-//deleting data
-//firebase.database().ref("/killthis").remove();

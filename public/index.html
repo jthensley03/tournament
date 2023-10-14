@@ -14,18 +14,19 @@
 <body>
     <div class="container-header">
         <div class="item-header"><fade></fade></div>
+        <div class="item-home">
+            <button id="home-button" class="header-button" onClick="renderPage('home', '')">Home</button>
+        </div>
         <div class="item-contact" id="header-button-1">
             <button id="contact-button" class="header-button" onClick="showContactPopup()">Contact</button>
         </div>
         <div class="item-login" id="header-button-3"></div>
         <div class="item-signup" id="header-button-2"></div>
     </div>
-    <div class="page">
+    <div class="page" id="page">
         <div class="landing-body">
-            <h1 id="title"></h1>
+            <h1 id="title">Hello, please log in or sign up!</h1>
         </div>
-        <div id="logged-in-home"></div>
-        <div id="tournament-bracket" class="tournament-bracket"></div>
     </div>
     <div id="contact-popup" class="container-form-popup">
         <form class="form-popup" id="contactForm" name="contactForm" onsubmit="return false;">
