@@ -9,25 +9,25 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.3.1/firebase-app-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.3.1/firebase-auth-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.3.1/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.3.1/firebase-storage-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script src="https://kit.fontawesome.com/b50e203f0d.js" crossorigin="anonymous"></script>
 </head>
 <body>
-    <div class="container-header">
-        <div class="item-header"><fade></fade></div>
+    <div class="container-header" id="container-header">
         <div class="item-home">
-            <button id="home-button" class="header-button" onClick="renderPage('home', '')">Home</button>
+            <button id="home-button" class="header-button" onClick="renderPage('home', '')"><i class="fa-solid fa-home"></i></button>
         </div>
         <div class="item-contact" id="header-button-1">
-            <button id="contact-button" class="header-button" onClick="showContactPopup()">Contact</button>
+            <button id="contact-button" class="header-button" onClick="showContactPopup()"><i class="fa-solid fa-headset"></i></button>
         </div>
-        <div class="item-login" id="header-button-3"></div>
-        <div class="item-signup" id="header-button-2"></div>
-    </div>
-    <div class="page" id="page">
-        <div class="landing-body">
-            <h1 id="title">Hello, please log in or sign up!</h1>
+        <div class="item-profile" id="header-button-2">
+            <button id="contact-button" class="header-button-profile"><i class="fa-solid fa-user"></i></button>
         </div>
+        <div class="profile-window" id="profile-window"></div>
     </div>
+    <div class="backgroundImg" id="backgroundImg"></div>
+    <div class="page" id="page"></div>
     <div id="contact-popup" class="container-form-popup">
         <form class="form-popup" id="contactForm" name="contactForm" onsubmit="return false;">
             <div class="form-group">
@@ -56,60 +56,6 @@
         </form>
         <p class="formError" id="contactFormError"></p>
     </div>
-    <div id="signup-popup" class="container-form-popup">
-        <form class="form-popup" id="signupForm" name="signupForm" onsubmit="return false;">
-            <div class="form-group">
-                <label class="form-label" for="signup_fname">First Name</label>
-                <br>
-                <input class="form-control" id="signup_fname" name="signup_fname" type="text" placeholder="Enter First Name">
-                <br>
-                <label for="signup_lname">Last Name</label>
-                <br>
-                <input class="form-control" id="signup_lname" name="signup_lname" type="text" placeholder="Enter Last Name">
-                <br>
-                <label for="signup_email">Email address</label>
-                <br>
-                <input name="signup_email" type="email" class="form-control" id="signup_email" placeholder="Enter Email">
-                <br>
-                <label for="signup_phone">Phone number</label>
-                <br>
-                <input class="form-control" id="signup_phone" name="signup_phone" type="text" placeholder="123-456-7890">
-                <br>
-                <label for="signup_password">Password</label>
-                <br>
-                <input class="form-control" id="signup_password" name="signup_password" type="text" placeholder="Password">
-                <br>
-                <label for="signup_password">Password Confirmation</label>
-                <br>
-                <input class="form-control" id="signup_password_con" name="signup_password_con" type="text" placeholder="Password">
-            </div>
-            <br>
-            <button type="submit" class="form-button">Sign up</button>
-            <button onClick="hideSignupPopup()" class="form-button">Exit</button>
-        </form>
-        <p class="formError" id="signupFormError"></p>
-    </div>
-    <div id="login-popup" class="container-form-popup">
-        <form class="form-popup" id="loginForm" name="loginForm" onsubmit="return false;">
-            <div class="form-group">
-                <label for="login-email">Use your email</label>
-                <br>
-                <input name="login-email" type="email" class="form-control" id="login-email" placeholder="Enter Email">
-                <br>
-                <label for="login-password">Password</label>
-                <br>
-                <input class="form-control" id="login-password" name="login-password" type="text" placeholder="Password">
-            </div>
-            <br>
-            <button type="submit" class="form-button">Log in</button>
-            <button onClick="hideLoginPopup()" class="form-button">Exit</button>
-        </form>
-        <button class="button-as-hyperlink" onClick="showSignupPopup()">Don't have an account? Sign up</button>
-        <br>
-        <button class="button-as-hyperlink" onClick="showResetPassPopup()">Forgot your password?</button>
-        <br>
-        <p class="formError" id="loginFormError"></p>
-    </div>
     <div id="resetPass-popup" class="container-form-popup">
         <form class="form-popup" id="resetPassForm" name="resetPassForm" onsubmit="return false;">
             <div class="form-group">
@@ -137,6 +83,7 @@
         <br>
         <p class="formError" id="resetPassFormError"></p>
     </div>
+    <div id="top-of-site-pixel-anchor"></div>
 </body>
 </html>
 

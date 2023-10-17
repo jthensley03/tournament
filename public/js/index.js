@@ -11,9 +11,114 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = firebase.initializeApp(firebaseConfig);
 
+document.addEventListener("DOMContentLoaded", function(){
+    if (
+        "IntersectionObserver" in window &&
+        "IntersectionObserverEntry" in window &&
+        "intersectionRatio" in window.IntersectionObserverEntry.prototype
+    ) {
+        let observer = new IntersectionObserver(entries => {
+            if (entries[0].boundingClientRect.y < 0) {
+                document.getElementById('big-text-container').style.position = 'fixed';
+                document.getElementById('big-text-container').style.top = '90px';
+                document.getElementById('floating-card').style.position = 'fixed';
+                document.getElementById('floating-card').style.top = '75px';
+            } else {
+            }
+        });
+        observer.observe(document.querySelector("#top-of-site-pixel-anchor"));
+    }
+});
+function getFname(uid) {
+    return new Promise((resolve) => {
+        firebase.database().ref("/users/" + uid + "/fname").once('value', snapshot => {
+            let fname = snapshot.val();
+            resolve(fname);
+        });
+    });
+}
+
+function getLname(uid) {
+    return new Promise((resolve) => {
+        firebase.database().ref("/users/" + uid + "/lname").once('value', snapshot => {
+            let lname = snapshot.val();
+            resolve(lname);
+        });
+    });
+}
+
+function getEmail(uid) {
+    return new Promise((resolve) => {
+        firebase.database().ref("/users/" + uid + "/email").once('value', snapshot => {
+            let email = snapshot.val();
+            resolve(email);
+        });
+    });
+}
+
+function getPhone(uid) {
+    return new Promise((resolve) => {
+        firebase.database().ref("/users/" + uid + "/phone").once('value', snapshot => {
+            let phone = snapshot.val();
+            resolve(phone);
+        });
+    });
+}
+
+async function renderProfile() {
+    console.log("hit renderProfile");
+    let htmlStr = "";
+    if(firebase.auth().currentUser) {
+        let uid = firebase.auth().currentUser.uid;
+//        let username = '';
+        const fname = await getFname(uid);
+        const lname = await getLname(uid);
+        const email = await getEmail(uid);
+        const phone = await getPhone(uid);
+        htmlStr += `<div class="profile-content">
+                        <h1 class="profile-text">Your Profile<h1>
+                        <p class="profile-small-text">First Name: ${fname}</p>
+                        <p class="profile-small-text">Last Name: ${lname}</p>
+                        <p class="profile-small-text">Email: ${email}</p>
+                        <p class="profile-small-text">Phone: ${phone}</p>
+                        <button class="profile-button" onClick="logout()">Logout</button>
+                    </div>`;
+    } else {
+        htmlStr += `<div class="profile-content">
+                        <form class="profile-login" id="loginForm" name="loginForm" onsubmit="return false;">
+                            <div class="form-group">
+                                <input name="login-email" type="email" class="form-control" id="login-email" placeholder="Enter Email">
+                                <br>
+                                <input class="form-control" id="login-password" name="login-password" type="text" placeholder="Password">
+                                <p class="button-as-hyperlink" onclick="showResetPassPopup()">Forgot your password?</p>
+                            </div>
+                        </form>
+                        <p class="formError" id="loginFormError"></p>
+                        <button class="profile-button" onClick="login()">Log in</button>
+                        <h1 class="profile-text">or</h1>
+                            <form class="profile-login" id="signupForm" name="signupForm" onsubmit="return false;">
+                                <div class="form-group">
+                                    <input class="form-control" id="signup_fname" name="signup_fname" type="text" placeholder="Enter First Name">
+                                    <br>
+                                    <input class="form-control" id="signup_lname" name="signup_lname" type="text" placeholder="Enter Last Name">
+                                    <br>
+                                    <input name="signup_email" type="email" class="form-control" id="signup_email" placeholder="Enter Email">
+                                    <br>
+                                    <input class="form-control" id="signup_phone" name="signup_phone" type="text" placeholder="123-456-7890">
+                                    <br>
+                                    <input class="form-control" id="signup_password" name="signup_password" type="text" placeholder="Password">
+                                    <br>
+                                    <input class="form-control" id="signup_password_con" name="signup_password_con" type="text" placeholder="Password">
+                                </div>
+                            </form>
+                            <p class="formError" id="signupFormError"></p>
+                        <button class="profile-button" onClick="signup()">Sign up</button>
+                    </div>`;
+    }
+    htmlStr += "<div id='contact-button' class='header-bottom-profile'><i class='fa-solid fa-user'></i></div>";
+    document.getElementById('profile-window').innerHTML = htmlStr;
+}
 function showContactPopup() {
-    hideLoginPopup();
-    hideSignupPopup();
     hideResetPassPopup();
     document.getElementById("contact-popup").style.display = "block";
     console.log("contact popup shown");
@@ -24,35 +129,7 @@ function hideContactPopup() {
     console.log("contact popup hidden");
 }
 
-function showLoginPopup() {
-    hideContactPopup();
-    hideSignupPopup();
-    hideResetPassPopup();
-    document.getElementById("login-popup").style.display = "block";
-    console.log("login popup shown");
-}
-
-function hideLoginPopup() {
-    document.getElementById("login-popup").style.display = "none";
-    console.log("login popup hidden");
-}
-
-function showSignupPopup() {
-    hideLoginPopup();
-    hideContactPopup();
-    hideResetPassPopup();
-    document.getElementById("signup-popup").style.display = "block";
-    console.log("signup popup shown");
-}
-
-function hideSignupPopup() {
-    document.getElementById("signup-popup").style.display = "none";
-    console.log("signup popup hidden");
-}
-
 function showResetPassPopup() {
-    hideLoginPopup();
-    hideSignupPopup();
     hideContactPopup();
     document.getElementById("resetPass-popup").style.display = "block";
     console.log("reset pass popup shown");
@@ -61,18 +138,6 @@ function showResetPassPopup() {
 function hideResetPassPopup() {
     document.getElementById("resetPass-popup").style.display = "none";
     console.log("reset pass popup hidden");
-}
-
-function showLogoutButton() {
-    document.getElementById("header-button-3").innerHTML = "";
-    document.getElementById("header-button-2").innerHTML = "<button id='logout-button' class='header-button' onClick='logout()'>Log Out</button>";
-    console.log("logout button shown");
-}
-
-function showLoginButton() {
-    document.getElementById("header-button-2").innerHTML = "<button id='<button id='signup-button' class='header-button' onClick='showSignupPopup()'>Sign Up</button>";
-    document.getElementById("header-button-3").innerHTML = "<button id='login-button' class='header-button' onClick='showLoginPopup()'>Log In</button>";
-    console.log("login button shown");
 }
 
 function validateContactForm() {
@@ -136,7 +201,6 @@ function validateSignupForm() {
         errorMessage = "Passwords do not match";
     } else {
         passed = true;
-        hideSignupPopup();
     }
     setSignupError(errorMessage);
     console.log("passed " + passed);
@@ -155,7 +219,6 @@ function validateLoginForm() {
         errorMessage = "Invalid email";
     } else {
         passed = true;
-        hideLoginPopup();
     }
     setLoginError(errorMessage);
     console.log("passed " + passed);
@@ -215,11 +278,6 @@ window.onload = function() {
 }
 
 firebase.auth().onAuthStateChanged((user) => {
-    if (user) {
-        showLogoutButton();
-    } else {
-        showLoginButton();
-    }
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('type')=='view'){
         renderPage('viewTour', urlParams.get('tour_name'), urlParams.get('uid'));
@@ -232,6 +290,7 @@ firebase.auth().onAuthStateChanged((user) => {
             renderPage('logged-out-home', '');
         }
     }
+    renderProfile();
 });
 
 function generateViewLink(uid, tour_name) {
@@ -311,7 +370,7 @@ async function renderTourJoin(tour_name, uid) {
         renderPage('viewTour', tour_name, uid);
     } else {
         //force log in then call renderTourJoin
-        showLoginPopup();
+        document.getElementById('page').innerHTML = "<h1 class='floating-card-text'>Please log in to join.</h1>";
         renderTourJoin(tour_name, uid);
     }
 }
@@ -321,7 +380,12 @@ async function renderTourView(tour_name, uid) {
     const numParts = await helperGetNumParticipants(tour_name, uid);
     const public = await helperGetPublic(tour_name, uid);
     const canView = await helperGetCanView(tour_name, uid);
-    let htmlStr = "<div id='tournament-bracket' class='tournament-bracket'>";
+    let htmlStr = `<div class='floating-card-top'>
+                       <div class="tour-header-container">
+                           <h1 class="tour-header">${tour_name}</h1>
+                       </div>
+                       <button class="tour-button-right" onclick="copyViewLink('${tour_name}', '${uid}')">Share Tournament</button>
+                       <div id='tournament-bracket' class='tournament-bracket'>`;
     for(let i=1; i<(Math.ceil(Math.sqrt(numParts+1)) + 2); i++) {
         console.log("inside out for loop");
         htmlStr += "<div class='bracket-column' id='bracket-column-" + i + "'><ul>";
@@ -387,7 +451,7 @@ async function renderTourView(tour_name, uid) {
             htmlStr = htmlStr + "</ul></div>";
         }
     }
-    htmlStr = htmlStr + "</div>";
+    htmlStr = htmlStr + "</div></div></div>";
     document.getElementById('page').innerHTML = htmlStr;
 }
 
@@ -448,11 +512,31 @@ function helperGetKeys(tour_name, uid, round) {
     });
 }
 
-function renderLoggedOutHome() {
-    var htmlStr = `<div class="landing-body">
-                       <h1 id="title">Hello, please log in or sign up!</h1>
-                   </div>`;
+async function renderLoggedOutHome() {
+    var htmlStr = `<div class="big-text-container" id="big-text-container">
+                       <h1 class="big-text" id="big-text">Get your bracket on.</h1>
+                   </div>
+                   <div class="floating-card" id="floating-card">
+                       <p class="floating-card-text">Check out these public tournaments, or sign up to create your own</p>
+                       <div class="public-tour-menu" id="logged-out-tour-menu">
+                           <div class="public-menu-header">
+                               <p class="public-menu-name">Tournament Name</p>
+                               <p class="public-menu-owner">Owner</p>
+                           </div>
+                       <div class="public-menu-scrollable">`;
+    const allPublicTour = await getAllPublicTour();
+    for(let i=0; i<allPublicTour.length; i=i+2) {
+        const fname = await getFname(allPublicTour[i]);
+        htmlStr += `<div class="public-menu-item" onclick="renderPage('viewTour', '${allPublicTour[i+1]}', '${allPublicTour[i]}')">
+                        <p class="public-menu-item-name">${allPublicTour[i+1]}</p>
+                        <p class="public-menu-item-owner">${fname}</p>
+                    </div>`;
+    }
+    htmlStr += `</div></div></div>
+                <div class="blank-card" id="blank-card"></div>`;
     document.getElementById('page').innerHTML = htmlStr;
+    htmlStr = `<img src='https://firebasestorage.googleapis.com/v0/b/cpeg470-tournament.appspot.com/o/gaming.gif?alt=media&token=d6cdba5c-f35a-49d3-b595-4667d43fd8a1' class='gaming-gif'>`;
+    document.getElementById('backgroundImg').innerHTML = htmlStr;
 }
 
 async function renderLoggedInHome() {
@@ -461,36 +545,44 @@ async function renderLoggedInHome() {
     console.log(uid);
     var htmlStr = "";
     const fname = await getFname(uid);
-    htmlStr = `<div id="logged-in-home">
-                   <h1 id="title">Hello, ${fname}</h1>
-                   <button id='createPresetTour' onClick='renderPresetTourPopup()'>Create a preset tournament</button>
-               </div>
-               <div class="tour-menu" id="logged-out-tour-menu">
-                   <div class="menu-header">
-                       <p class="menu-name">Tournament Name</p>
-                       <p class="menu-owner">Owner</p>
+    htmlStr = `<div class="floating-card-top" id="logged-in-home">
+                   <div class="big-text-container-top">
+                       <h1 id="title" class="big-text">Hello, ${fname}</h1>
                    </div>
-                   <div class="menu-scrollable">`;
+                   <div class="public-tour-menu-logged" id="logged-in-tour-menu">
+                       <div class="public-menu-header">
+                           <p class="public-menu-name">Tournament Name</p>
+                           <p class="public-menu-owner">Owner</p>
+                       </div>
+                       <div class="public-menu-scrollable">`;
     const allMyTour = await returnAllMyTour(uid);
     for(let i=0; i<allMyTour.length; i++) {
-        htmlStr += `<div class="menu-item" onclick="renderPage('tour', '${allMyTour[i]}')">
-                                <p class="menu-item-name">${allMyTour[i]}</p>
-                                <p class="menu-item-owner">${fname}</p>
-                            </div>`;
+        htmlStr += `<div class="public-menu-item" onclick="renderPage('tour', '${allMyTour[i]}')">
+                        <p class="public-menu-item-name">${allMyTour[i]}</p>
+                        <p class="public-menu-item-owner">${fname}</p>
+                    </div>`;
     }
-    htmlStr += "</div></div>";
+    htmlStr += "<button class='menu-button' id='createPresetTour' onClick='renderPresetTourPopup()'>+</button></div></div></div>";
     console.log(htmlStr);
     document.getElementById("page").innerHTML = htmlStr;
 }
 
-function getFname(uid) {
+function getAllPublicTour() {
+    console.log("hit allMyTour");
     return new Promise((resolve) => {
-        firebase.database().ref("/users/" + uid + "/fname").once('value', snapshot => {
-            let fname = snapshot.val();
-            resolve(fname);
+        firebase.database().ref("/tournaments").once('value', snapshot => {
+            let allPublicTour = [];
+            snapshot.forEach((childSnapshot) => {
+                allPublicTour.push(childSnapshot.key);
+                childSnapshot.forEach(function(childSnapshot) {
+                    allPublicTour.push(childSnapshot.key);
+                });
+            });
+            resolve(allPublicTour);
         });
     });
 }
+
 
 function returnAllMyTour(uid) {
     console.log("hit allMyTour");
@@ -520,10 +612,6 @@ function logout() {
     showLoginButton();
 }
 
-document.getElementById('signupForm').addEventListener('submit', function(event) {
-    signup();
-});
-
 function signup() {
     if(validateSignupForm()) {
         var email = document.getElementById("signup_email").value;
@@ -544,10 +632,6 @@ function signup() {
             });
     }
 }
-
-document.getElementById('loginForm').addEventListener('submit', function(event) {
-    login();
-});
 
 function login() {
     if(validateLoginForm()) {
@@ -613,9 +697,13 @@ function renderTour(tour_name) {
     var participants = [];
     var wins = [];
     var keys = [];
-    var htmlStr = `<button onclick="copyViewLink('${tour_name}', '${uid}')">Share Tournament</button>
-                   <button onclick="copyJoinLink('${tour_name}', '${uid}')">Invite your friends to join!</button>
-                   <div id='tournament-bracket' class='tournament-bracket'>`;
+    var htmlStr = `<div class="floating-card-top">
+                       <div class="tour-header-container">
+                           <h1 class="tour-header">${tour_name}</h1>
+                       </div>
+                       <button class="tour-button-right" onclick="copyViewLink('${tour_name}', '${uid}')">Share Tournament</button>
+                       <button class="tour-button-left" onclick="copyJoinLink('${tour_name}', '${uid}')">Invite your friends to join!</button>
+                       <div id='tournament-bracket' class='tournament-bracket'>`;
     var numParts = 0;
     var matchIdNum = 1;
     firebase.database().ref("/tournaments/" + uid + "/" + tour_name + "/numParticipants").on('value', snapshot => {
@@ -721,18 +809,11 @@ function renderTour(tour_name) {
                     }
                     matchIdNum++;
                     htmlStr = htmlStr + "</ul></div>";
-/*
-                    let matchHeight = document.getElementById('bracket-match-1').offsetHeight;
-                    console.log("match-height" + matchHeight);
-                    let heightStr = Math.ceil(((matchHeight*0.5) + (matchHeight*0.15)) * (i-1)).toString() + "px";
-                    console.log("heightStr" + heightStr);
-                    document.getElementById("bracket-column-" + i).style.top = heightStr;
-*/
                 }
                 console.log("i: " + i + " vs. " + (Math.ceil(Math.sqrt(numParts+1))+1));
                 if(i == (Math.ceil(Math.sqrt(numParts+1))+1)) {
                     console.log("inside if");
-                    htmlStr = htmlStr + "</div>";
+                    htmlStr = htmlStr + "</div></div>";
                     document.getElementById('page').innerHTML = htmlStr;
                 }
             });
